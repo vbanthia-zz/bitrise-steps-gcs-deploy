@@ -1,0 +1,28 @@
+title: Upload to Google Cloud Storage
+summary: Upload your build artifacts to Google Cloud Storage
+description: |-
+  Bitrise Step to Deploy your build artifacts to Google Cloud Storage.
+website: https://github.com/vbanthia/bitrise-steps-gcs-deploy
+source_code_url: https://github.com/bitrise-steps-gcs-deploy
+support_url: https://github.com/bitrise-steps-gcs-deploy/issues
+# TODO: Confirm it
+host_os_tags:
+  - osx-10.10
+  - linux
+project_type_tags:
+  - ios
+  - android
+type_tags:
+  - deploy
+  - GCS
+is_requires_admin_user: true
+is_always_run: false
+is_skippable: false
+run_if: ""
+inputs:
+  - file_path: "$BITRISE_APK_PATH"
+    opts:
+      title: "File path"
+      summary: "Path of the file to upload"
+      description: ""
+      is_required: true
