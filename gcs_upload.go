@@ -14,7 +14,6 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 
-	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
 
@@ -25,7 +24,7 @@ func downloadFile(downloadURL, targetPath string) error {
 	}
 	defer func() {
 		if err := outFile.Close(); err != nil {
-			log.Warnf("Failed to close (%s)", targetPath)
+			fmt.Println("Failed to close (%s)", targetPath)
 		}
 	}()
 
@@ -35,7 +34,7 @@ func downloadFile(downloadURL, targetPath string) error {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Warnf("failed to close (%s) body", downloadURL)
+			fmt.Println("failed to close (%s) body", downloadURL)
 		}
 	}()
 
@@ -77,7 +76,6 @@ func main() {
 	key_path := os.Getenv("service_account_json_key_path")
 
 	if strings.HasPrefix(key_path, "http") {
-		downloadUrl := key_path
 		tmpDir, err := pathutil.NormalizedOSTempDirPath("__google-cloud-storage__")
 
 		if err != nil {
