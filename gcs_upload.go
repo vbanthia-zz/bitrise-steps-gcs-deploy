@@ -1,110 +1,141 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"io"
 	"os"
 	"net/http"
 	"path/filepath"
 	"strings"
 
-	"google.golang.org/api/storage/v1"
-
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
 
+	"cloud.google.com/go/storage"
+
+	"google.golang.org/api/option"
+	"google.golang.org/api/iterator"
+
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
+
+func failf(format string, v ...interface{}) {
+	log.Errorf(format, v...)
+	os.Exit(1)
+}
 
 func downloadFile(downloadURL, targetPath string) error {
 	outFile, err := os.Create(targetPath)
 	if err != nil {
-		return fmt.Errorf("failed to create (%s), error: %s", targetPath, err)
+		failf("Failed to create (%s), error: %s", targetPath, err)
 	}
 	defer func() {
 		if err := outFile.Close(); err != nil {
-			fmt.Println("Failed to close (%s)", targetPath)
+			log.Warnf("Failed to close (%s), error: %s", targetPath, err)
 		}
 	}()
 
 	resp, err := http.Get(downloadURL)
 	if err != nil {
-		return fmt.Errorf("failed to download from (%s), error: %s", downloadURL, err)
+		failf("Failed to download from (%s), error: %s", downloadURL, err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Println("failed to close (%s) body", downloadURL)
+			log.Warnf("Failed to close (%s) body", downloadURL)
 		}
 	}()
 
 	_, err = io.Copy(outFile, resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to download from (%s), error: %s", downloadURL, err)
+		failf("Failed to download from (%s), error: %s", downloadURL, err)
 	}
 
 	return nil
 }
 
-
-// ListBuckets returns a slice of all the buckets for a given project.
-func ListBuckets(projectID string) ([]*storage.Bucket, error) {
-	ctx := context.Background()
-
-	// Create the client that uses Application Default Credentials
-	// See https://developers.google.com/identity/protocols/application-default-credentials
-	client, err := google.DefaultClient(ctx, storage.DevstorageReadOnlyScope)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the Google Cloud Storage service
-	service, err := storage.New(client)
-	if err != nil {
-		return nil, err
-	}
-
-	buckets, err := service.Buckets.List(projectID).Do()
-	if err != nil {
-		return nil, err
-	}
-
-	return buckets.Items, nil
-}
-
 func main() {
-	key_path := os.Getenv("service_account_json_key_path")
+	keyPath          := os.Getenv("service_account_json_key_path")
+	projectId        := os.Getenv("project_id")
+	bucketName       := os.Getenv("bucket_name")
+	folderName       := os.Getenv("folder_name")
+	uploadFilePath   := os.Getenv("upload_file_path")
+	uploadedFileName := os.Getenv("uploaded_file_name")
 
-	if strings.HasPrefix(key_path, "http") {
+	// Download json_key if bitrise file storage is used
+	if strings.HasPrefix(keyPath, "http") {
 		tmpDir, err := pathutil.NormalizedOSTempDirPath("__google-cloud-storage__")
 
 		if err != nil {
-		  fmt.Errorf("Failed to create tmp dir, error: %s", err)
+		  failf("Failed to create tmp dir, error: %s", err)
 		}
 
 		targetPath := filepath.Join(tmpDir, "key.json")
-		if err := downloadFile(key_path, targetPath); err != nil {
-				fmt.Errorf("Failed to download json key file, error: %s", err)
+		if err := downloadFile(keyPath, targetPath); err != nil {
+				failf("Failed to download json key file, error: %s", err)
 		}
 
-		key_path = targetPath
+		keyPath = targetPath
 	}
 
-	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", key_path)
+	// Set GOOGLE_APPLICATION_CREDENTIALS to json_key so that
+	// gcloud library uses service account
+	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", keyPath)
 
-	if len(os.Args) < 2 {
-		fmt.Println("usage: listbuckets <projectID>")
-		os.Exit(1)
-	}
-	project := os.Args[1]
+	// Creat client
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx, option.WithServiceAccountFile(keyPath))
 
-	buckets, err := ListBuckets(project)
 	if err != nil {
-		log.Fatal(err)
+		failf("Failed to create new storage client, error: %s", err)
 	}
 
-	// Print out the results
-	for _, bucket := range buckets {
-		fmt.Println(bucket.Name)
+	// Create bucket if it does not exist
+	bucketExist := false
+	it := client.Buckets(ctx, projectId)
+
+	for {
+		battrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			failf("Failed to create new storage client, error: %s", err)
+		}
+
+		if battrs.Name == bucketName {
+			bucketExist = true
+			log.Infof("Bucket %s already exist", bucketName)
+		}
+	}
+
+	if (!bucketExist) {
+		if err := client.Bucket(bucketName).Create(ctx, projectId, nil); err != nil {
+	    failf("Failed to create bucket, error: %s", err)
+		}
+		log.Infof("Bucket %s created successfully", bucketName)
+	}
+
+	// Uploading file
+	file, err := os.Open(uploadFilePath)
+	if err != nil {
+		failf("File (%s) does not exist, error: %s", uploadFilePath, err)
+	}
+
+	defer file.Close()
+
+	if folderName != "" {
+		uploadedFileName = folderName + "/" + uploadedFileName
+	}
+
+	wc := client.Bucket(bucketName).Object(uploadedFileName).NewWriter(ctx)
+	if _, err = io.Copy(wc, file); err != nil {
+		failf("File (%s) does not exist, error: %s", uploadFilePath, err)
+	}
+
+	if err := wc.Close(); err != nil {
+		failf("Failed to close wc, error: %s", err)
+	}
+
+	if err := client.Close(); err != nil {
+	  failf("Failed to close storage client, error: %s", err)
 	}
 }

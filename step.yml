@@ -5,7 +5,6 @@ description: |-
 website: https://github.com/vbanthia/bitrise-steps-gcs-deploy
 source_code_url: https://github.com/bitrise-steps-gcs-deploy
 support_url: https://github.com/bitrise-steps-gcs-deploy/issues
-# TODO: Confirm it
 host_os_tags:
   - osx-10.10
   - ubuntu
@@ -32,9 +31,33 @@ inputs:
       summary: "Path of the file to upload"
       description: ""
       is_required: true
-  - project_name:
+  - project_id:
     opts:
       title: Google Cloud Platform Project Id
+      summary: ""
+      description: ""
+      is_required: true
+  - bucket_name:
+    opts:
+      title: GCS Bucket Name
+      summary: ""
+      description: ""
+      is_required: true
+  - folder_name:
+    opts:
+      title: GCS Folder Name
+      summary: ""
+      description: ""
+      is_required: false
+  - upload_file_path:
+    opts:
+      title: File Path to upload
+      summary: ""
+      description: ""
+      is_required: true
+  - uploaded_file_name:
+    opts:
+      title: File name after upload
       summary: ""
       description: ""
       is_required: true
