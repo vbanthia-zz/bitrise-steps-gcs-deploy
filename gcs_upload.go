@@ -3,15 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"io"
 	"os"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"google.golang.org/api/storage/v1"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 
+	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
 
@@ -78,12 +81,12 @@ func main() {
 		tmpDir, err := pathutil.NormalizedOSTempDirPath("__google-cloud-storage__")
 
 		if err != nil {
-		  failf("Failed to create tmp dir, error: %s", err)
+		  fmt.Errorf("Failed to create tmp dir, error: %s", err)
 		}
 
 		targetPath := filepath.Join(tmpDir, "key.json")
 		if err := downloadFile(key_path, targetPath); err != nil {
-				failf("Failed to download json key file, error: %s", err)
+				fmt.Errorf("Failed to download json key file, error: %s", err)
 		}
 
 		key_path = targetPath
