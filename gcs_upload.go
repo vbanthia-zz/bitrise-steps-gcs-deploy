@@ -2,8 +2,8 @@ package main
 
 import (
 	"io"
-	"os"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,8 +11,8 @@ import (
 
 	"cloud.google.com/go/storage"
 
-	"google.golang.org/api/option"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-io/go-utils/pathutil"
@@ -29,7 +29,7 @@ func downloadFile(downloadURL, targetPath string) error {
 		failf("Failed to create (%s), error: %s", targetPath, err)
 	}
 	defer func() {
-		if err := outFile.Close(); err != nil {
+		if err = outFile.Close(); err != nil {
 			log.Warnf("Failed to close (%s), error: %s", targetPath, err)
 		}
 	}()
@@ -39,7 +39,7 @@ func downloadFile(downloadURL, targetPath string) error {
 		failf("Failed to download from (%s), error: %s", downloadURL, err)
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
+		if err = resp.Body.Close(); err != nil {
 			log.Warnf("Failed to close (%s) body", downloadURL)
 		}
 	}()
@@ -53,11 +53,11 @@ func downloadFile(downloadURL, targetPath string) error {
 }
 
 func main() {
-	keyPath          := os.Getenv("service_account_json_key_path")
-	projectId        := os.Getenv("project_id")
-	bucketName       := os.Getenv("bucket_name")
-	folderName       := os.Getenv("folder_name")
-	uploadFilePath   := os.Getenv("upload_file_path")
+	keyPath := os.Getenv("service_account_json_key_path")
+	projectID := os.Getenv("project_id")
+	bucketName := os.Getenv("bucket_name")
+	folderName := os.Getenv("folder_name")
+	uploadFilePath := os.Getenv("upload_file_path")
 	uploadedFileName := os.Getenv("uploaded_file_name")
 
 	// Download json_key if bitrise file storage is used
@@ -65,12 +65,12 @@ func main() {
 		tmpDir, err := pathutil.NormalizedOSTempDirPath("__google-cloud-storage__")
 
 		if err != nil {
-		  failf("Failed to create tmp dir, error: %s", err)
+			failf("Failed to create tmp dir, error: %s", err)
 		}
 
 		targetPath := filepath.Join(tmpDir, "key.json")
 		if err := downloadFile(keyPath, targetPath); err != nil {
-				failf("Failed to download json key file, error: %s", err)
+			failf("Failed to download json key file, error: %s", err)
 		}
 
 		keyPath = targetPath
@@ -90,7 +90,7 @@ func main() {
 
 	// Create bucket if it does not exist
 	bucketExist := false
-	it := client.Buckets(ctx, projectId)
+	it := client.Buckets(ctx, projectID)
 
 	for {
 		battrs, err := it.Next()
@@ -107,9 +107,9 @@ func main() {
 		}
 	}
 
-	if (!bucketExist) {
-		if err := client.Bucket(bucketName).Create(ctx, projectId, nil); err != nil {
-	    failf("Failed to create bucket, error: %s", err)
+	if !bucketExist {
+		if err = client.Bucket(bucketName).Create(ctx, projectID, nil); err != nil {
+			failf("Failed to create bucket, error: %s", err)
 		}
 		log.Infof("Bucket %s created successfully", bucketName)
 	}
@@ -131,11 +131,11 @@ func main() {
 		failf("File (%s) does not exist, error: %s", uploadFilePath, err)
 	}
 
-	if err := wc.Close(); err != nil {
+	if err = wc.Close(); err != nil {
 		failf("Failed to close wc, error: %s", err)
 	}
 
-	if err := client.Close(); err != nil {
-	  failf("Failed to close storage client, error: %s", err)
+	if err = client.Close(); err != nil {
+		failf("Failed to close storage client, error: %s", err)
 	}
 }

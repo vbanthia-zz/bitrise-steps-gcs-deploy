@@ -12,4 +12,4 @@ go get -u -d github.com/bitrise-io/go-utils/pathutil
 go get -u -d google.golang.org/api/iterator
 go get -u -d google.golang.org/api/option
 
-go run ./gcs_upload.go ${project_name}
+go run ./gcs_upload.go
