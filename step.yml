@@ -8,7 +8,7 @@ support_url: https://github.com/bitrise-steps-gcs-deploy/issues
 # TODO: Confirm it
 host_os_tags:
   - osx-10.10
-  - linux
+  - ubuntu
 project_type_tags:
   - ios
   - android
@@ -18,11 +18,23 @@ type_tags:
 is_requires_admin_user: true
 is_always_run: false
 is_skippable: false
+deps:
+  brew:
+  - name: go
+  apt_get:
+  - name: golang
+    bin_name: go
 run_if: ""
 inputs:
-  - file_path: "$BITRISE_APK_PATH"
+  - service_account_json_key_path: "BITRISEIO_GCS_SERVICE_ACCOUNT_JSON_FILE_URL"
     opts:
-      title: "File path"
+      title: Service Accoiunt JSON key file path
       summary: "Path of the file to upload"
+      description: ""
+      is_required: true
+  - project_name:
+    opts:
+      title: Google Cloud Platform Project Id
+      summary: ""
       description: ""
       is_required: true
